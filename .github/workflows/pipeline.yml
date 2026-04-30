@@ -13,10 +13,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install curl
-        run: sudo apt-get update && sudo apt-get install -y curl
+      # ⏱ Start timer
+      - name: Start timer
+        run: echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
 
-      - name: Simulate CI/CD Data & Call API
+      # 🧪 Example test step (replace with real tests)
+      - name: Run tests
+        id: tests
         run: |
-          curl -X POST "http://13.234.111.82:8000/predict?build_time=200&test_failures=4&code_changes=30&past_failures=2&deploy_time=500"
-          echo "Pipeline completed!"
+          echo "Simulating tests..."
+          echo "TEST_FAILURES=2" >> $GITHUB_ENV
+
+      # 📦 Simulate deploy
+      - name: Deploy step
+        run: sleep 5
+
+      # ⏱ End timer + calculate build time
+      - name: Calculate metrics
+        run: |
+          END_TIME=$(date +%s)
+          BUILD_TIME=$((END_TIME - START_TIME))
+
+echo "CODE_CHANGES=$(git diff --name-only HEAD~1 2>/dev/null | wc -l || echo 1)" >> $GITHUB_ENV          echo "CODE_CHANGES=$(git diff --name-only HEAD~1 | wc -l)" >> $GITHUB_ENV
+          echo "PAST_FAILURES=1" >> $GITHUB_ENV
+          echo "DEPLOY_TIME=5" >> $GITHUB_ENV
+
+      # 🔥 Call your EC2 API with REAL DATA
+      - - name: Call Risk API
+  run: |
+    echo "Calling API with:"
+    echo "build_time=${BUILD_TIME}"
+    echo "test_failures=${TEST_FAILURES}"
+    echo "code_changes=${CODE_CHANGES}"
+    echo "past_failures=${PAST_FAILURES}"
+    echo "deploy_time=${DEPLOY_TIME}"
+
+    RESPONSE=$(curl -s -X POST "http://13.234.111.82:8000/predict?build_time=${BUILD_TIME}&test_failures=${TEST_FAILURES}&code_changes=${CODE_CHANGES}&past_failures=${PAST_FAILURES}&deploy_time=${DEPLOY_TIME}")
+
+    echo "API Response:"
+    echo "$RESPONSE"
