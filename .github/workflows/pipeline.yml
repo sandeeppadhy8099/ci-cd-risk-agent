@@ -14,9 +14,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install curl
-        run: sudo apt-get install curl
+        run: sudo apt-get update && sudo apt-get install -y curl
 
-      - - name: Simulate CI/CD Data & Call API
-  run: |
-    curl -X POST "http://13.234.111.82:8000/predict?build_time=200&test_failures=4&code_changes=30&past_failures=2&deploy_time=500"
+      - name: Simulate CI/CD Data & Call API
+        run: |
+          curl -X POST "http://13.234.111.82:8000/predict?build_time=200&test_failures=4&code_changes=30&past_failures=2&deploy_time=500"
           echo "Pipeline completed!"
