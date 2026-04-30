@@ -1,0 +1,25 @@
+name: CI/CD Risk Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  simulate-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install curl
+        run: sudo apt-get install curl
+
+      - name: Simulate CI/CD Data & Call API
+        run: |
+          echo "Running CI/CD simulation..."
+
+          curl -X POST "http://192.168.1.2:8000/predict?build_time=200&test_failures=4&code_changes=30&past_failures=2&deploy_time=500"
+
+          echo "Pipeline completed!"
