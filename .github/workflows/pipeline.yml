@@ -17,9 +17,8 @@ jobs:
       - name: Start timer
         run: echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
 
-      # 🧪 Example test step (replace with real tests)
+      # 🧪 Simulate tests
       - name: Run tests
-        id: tests
         run: |
           echo "Simulating tests..."
           echo "TEST_FAILURES=2" >> $GITHUB_ENV
@@ -28,27 +27,45 @@ jobs:
       - name: Deploy step
         run: sleep 5
 
-      # ⏱ End timer + calculate build time
+      # ⏱ Calculate metrics safely
       - name: Calculate metrics
         run: |
           END_TIME=$(date +%s)
           BUILD_TIME=$((END_TIME - START_TIME))
 
-echo "CODE_CHANGES=$(git diff --name-only HEAD~1 2>/dev/null | wc -l || echo 1)" >> $GITHUB_ENV          echo "CODE_CHANGES=$(git diff --name-only HEAD~1 | wc -l)" >> $GITHUB_ENV
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
+
+          # Safe git diff (prevents crash)
+          CODE_CHANGES=$(git diff --name-only HEAD~1 2>/dev/null | wc -l)
+          if [ -z "$CODE_CHANGES" ] || [ "$CODE_CHANGES" -eq 0 ]; then
+            CODE_CHANGES=1
+          fi
+
+          echo "CODE_CHANGES=$CODE_CHANGES" >> $GITHUB_ENV
           echo "PAST_FAILURES=1" >> $GITHUB_ENV
           echo "DEPLOY_TIME=5" >> $GITHUB_ENV
 
-      # 🔥 Call your EC2 API with REAL DATA
-      - - name: Call Risk API
-  run: |
-    echo "Calling API with:"
-    echo "build_time=${BUILD_TIME}"
-    echo "test_failures=${TEST_FAILURES}"
-    echo "code_changes=${CODE_CHANGES}"
-    echo "past_failures=${PAST_FAILURES}"
-    echo "deploy_time=${DEPLOY_TIME}"
+      # 🔥 Call EC2 ML API
+      - name: Call Risk API
+        run: |
+          echo "Calling API with:"
+          echo "build_time=${BUILD_TIME}"
+          echo "test_failures=${TEST_FAILURES}"
+          echo "code_changes=${CODE_CHANGES}"
+          echo "past_failures=${PAST_FAILURES}"
+          echo "deploy_time=${DEPLOY_TIME}"
 
-    RESPONSE=$(curl -s -X POST "http://13.234.111.82:8000/predict?build_time=${BUILD_TIME}&test_failures=${TEST_FAILURES}&code_changes=${CODE_CHANGES}&past_failures=${PAST_FAILURES}&deploy_time=${DEPLOY_TIME}")
+          RESPONSE=$(curl -s -X POST "http://13.234.111.82:8000/predict?build_time=${BUILD_TIME}&test_failures=${TEST_FAILURES}&code_changes=${CODE_CHANGES}&past_failures=${PAST_FAILURES}&deploy_time=${DEPLOY_TIME}")
 
-    echo "API Response:"
-    echo "$RESPONSE"
+          echo "API Response:"
+          echo "$RESPONSE"
+
+      # 🚫 Stop pipeline if high risk
+      - name: Fail if High Risk
+        run: |
+          if echo "$RESPONSE" | grep -q '"state":"high"'; then
+            echo "❌ High risk detected. Failing pipeline."
+            exit 1
+          else
+            echo "✅ Safe to deploy"
+          fi
